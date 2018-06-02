@@ -1,0 +1,316 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=0.5, maximum-scale=0.5, minimum-scale=0.5, user-scalable=no">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="full-screen" content="yes">
+
+    <title>CoinMarket</title>
+    <link rel="stylesheet" href="lib/bootstrap-4.0.0-dist/css/bootstrap.min.css">
+    <style>
+        
+	body {margin-left: 0px;margin-top: -60px;margin-right: 0px;margin-bottom: 0px;overflow: auto;text-align:center;}
+    </style>
+
+
+<script src=lib/nebPay.js></script>
+<script src=lib/bootstrap-4.0.0-dist/js/bootstrap.min.js></script>
+<script src=lib/nebulas.js></script>
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.0.js"></script>
+<script>
+    //var dappContactAddress = "n1ov7Z5oix23riQKUaVensFie5Tr5UiGmBT";
+	var dappContactAddress = "n1jKiebd6vcPoH4p3zhhvR9JUrJSU4kxJgd";//testnet
+    var nebulas = require("nebulas"), Account = Account, neb = new nebulas.Neb();
+    neb.setRequest(new nebulas.HttpRequest("https://testnet.nebulas.io"))
+    
+    var NebPay = require("nebpay");     //https://github.com/nebulasio/nebPay
+    var nebPay = new NebPay();
+    var serialNumber
+
+    function getchain() {
+        if (!$("#search2").val() || !$("#idate").val()) {
+            alert('名称或日期不能为空');
+            return;
+        }
+		var ititle=$("#search2").val() +"|"+ $("#idate").val();
+
+        //alert(ititle);
+        //$('#content').text("");
+        var from = dappContactAddress
+        var value = "0";
+        var nonce = "0"
+        var gas_price = "1000000"
+        var gas_limit = "2000000"
+        var callFunction = "get";
+        var callArgs = "[\"" + ititle + "\"]";
+        console.log(callArgs);
+        var contract = {
+            "function": callFunction,
+            "args": callArgs
+        }
+
+
+        neb.api.call(from, dappContactAddress, value, nonce, gas_price, gas_limit, contract).then(function (resp) {
+            var result = resp.result;
+            
+            if (result === 'null') {
+                /*$('#content').text("没有数据！");
+                $('#title').text("");
+                $('#author').text("");*/
+				alert("没有数据！");
+                return;
+            }
+            console.log(result);
+            result = JSON.parse(result);
+            /*$("#title").text(result.title);
+            $('#content').text("数据:  " + result.content);
+            $('#author').text("上传者：" + result.author);*/
+			var str=result.title+'|'+result.content;
+			var test = new Array(); 
+            test = str.split("|");
+			$("#crypto")[0].innerHTML=test[0];
+			$("#price")[0].innerHTML=test[2];
+			$("#market_cap")[0].innerHTML=test[3];
+			$("#24h_volume")[0].innerHTML=test[4];
+			$("#change_24h")[0].innerHTML=test[5];
+			$("#change_7d")[0].innerHTML=test[6];
+			$("#time")[0].innerHTML=test[7];
+			$("#source")[0].innerHTML="星云链";
+        }).catch(function (err) {
+            console.log("error :" + err.message);
+
+        })
+
+    }
+
+
+
+    function savechain() {
+        /*if (!$("#search").val() ) {
+            alert('名称不能为空');
+            return;
+        }*/
+		/*var table=document.getElementById("datatbl");
+		var td = table.getElementsByTagName("td");
+		for (i = 0; i < td.length; i++) {
+		var idata=td[i].innerHTML;
+		}*/
+		var icontent=$("#price")[0].innerHTML+"|"+$("#market_cap")[0].innerHTML+"|"+$("#24h_volume")[0].innerHTML+"|"+$("#change_24h")[0].innerHTML+"|"+$("#change_7d")[0].innerHTML+"|"+$("#time")[0].innerHTML;
+		var ititle2=$("#crypto")[0].innerHTML+"|"+$("#time")[0].innerHTML.substr(0,10);
+		//alert(ititle2);
+        var to = dappContactAddress;
+        var value = "0";
+        var callFunction = "save";
+        var callArgs = "[\"" + ititle2 + "\",\"" + icontent + "\"]";
+        console.log(callArgs);
+
+        serialNumber = nebPay.call(to, value, callFunction, callArgs, {    //使用nebpay的call接口去调用合约,
+            listener: function (resp) {
+                console.log("thecallback is " + resp)
+            }
+        });
+
+    }
+
+	Date.prototype.Format = function (fmt) { //author: meizz 
+    var o = {
+        "M+": this.getMonth() + 1, //月份 
+        "d+": this.getDate(), //日 
+        "h+": this.getHours(), //小时 
+        "m+": this.getMinutes(), //分 
+        "s+": this.getSeconds(), //秒 
+        "q+": Math.floor((this.getMonth() + 3) / 3), //季度 
+        "S": this.getMilliseconds() //毫秒 
+        };
+    if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+    if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+    return fmt;
+    }
+	
+function getdata(){
+    var coinname=document.getElementById("search").value;
+	if (!coinname){alert("输入不能为空");return}
+	var url="https://api.coinmarketcap.com/v1/ticker/"+coinname+"/";
+    var img_url=""
+    $.get(url,
+        function (data) {
+          console.log(data);
+		  var unixTimestamp = new Date(data[0].last_updated * 1000).Format("yyyy-MM-dd hh:mm:ss");
+		  var Time = unixTimestamp;
+//          document.getElementById("search-form").value="名称"+data[0].name+" 价格(美元)"+data[0].price_usd+" 时间"+Time;
+		  document.getElementById("crypto").innerHTML=data[0].name;
+		  document.getElementById("price").innerHTML=data[0].price_usd;
+		  document.getElementById("market_cap").innerHTML='$'+data[0].market_cap_usd;
+		  document.getElementById("24h_volume").innerHTML='$'+data[0]["24h_volume_usd"];
+		  document.getElementById("change_24h").innerHTML=data[0].percent_change_24h+'%';
+		  document.getElementById("change_7d").innerHTML=data[0].percent_change_7d+'%';
+		  document.getElementById("time").innerHTML=Time;
+		  document.getElementById("source").innerHTML="CoinMarketCap";
+      }
+    );
+
+  }
+  
+		
+function noinput(){
+//    document.getElementById('search-form').value='';
+	document.getElementById('search').value='';
+//	alert("输入不能为空"+date);
+}
+
+var myDate = new Date();
+date=myDate.toLocaleDateString();
+//document.getElementById('idate').value=date;
+var src="https://cn.investingwidgets.com/crypto-currency-rates?theme=darkTheme&pairs=945629,1057905,997650,1010782,1031333,1024821,1010798,1036958,1055297,1054991,";
+function refreshFrame(){
+	var pair=document.getElementById("search-form").value;
+	var p=pair.replace(/[^0-9]/ig,"");
+	if (!pair){alert("输入不能为空"+date);}
+    else {document.getElementById('ifid').src=src+p;}
+
+}
+
+function data2(){
+var x=document.getElementById("ifid");
+var y=(x.contentWindow || x.contentDocument);
+alert(y.getElementsByClassName('last hiddenTwo js-col-last pid-945629-last'));
+}
+</script>
+
+</head>
+<body onload="getdata()">
+<!--<iframe name="ifname" id="ifid" src="https://cn.investingwidgets.com/crypto-currency-rates?theme=darkTheme&pairs=945629,1057905,997650,1010782,1031333,1024821,1010798,1036958,1055297,1054991" width="100%" height="70%" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0"></iframe>
+<div>| BTC比特币 | NAS星云币 | ETH以太坊 | XRP瑞波币 | BCH比特币现金 | EOS柚子币 | LTC莱特币 | XLM恒星币 | ADA艾达币 | TRX波场币 | </div>
+-->
+<!--<input width="10px" type="text" placeholder="输入加密货币简称" id="search-form" list="coin">-->
+<iframe src="https://cn.widgets.investing.com/top-cryptocurrencies?theme=darkTheme" width="100%" height="70%" frameborder="0" allowtransparency="true" marginwidth="0" marginbottom="-60"></iframe>
+
+<datalist id="coin"> 
+        <option value="MIOTA 1031068" label="埃欧塔" /> 
+        <option value="NEO 1031327" label="小蚁币"/> 
+        <option value="DASH 1010785" label="达世币"/> 
+        <option value="XMR 1014071" label="门罗币"/> 
+        <option value="USDT 1031397" label="泰达币"/> 
+        <option value="XEM 1031712" label="新经币"/> 
+        <option value="VEN 1056735" label="唯链"/> 
+        <option value="ETC 1010883" label="以太经典"/> 
+        <option value="BNB 1054919" label="币安币"/> 
+        <option value="BCN 1036970" label="字节币"/> 
+        <option value="QTUM 1054930" label="量子币"/> 
+        <option value="ZEC 1014072" label="零币"/> 
+        <option value="OMG 1036862" label="嫩模币"/> 
+        <option value="ICX 1057011" label="图标币"/> 
+        <option value="LSK 1035801" label="应用链"/> 
+		 <option value="ZIL 1061993" label=""/> 
+        <option value="ONT 1072990" label="本体币"/> 
+        <option value="BTG 1053071" label="比特黄金"/> 
+        <option value="AE 1056929" label=""/> 
+        <option value="DCR 1056100" label="德信币"/> 
+        <option value="STEEM 1056099" label="斯蒂姆币"/> 
+</datalist>
+<datalist id="coin2"> 
+        <option value="bitcoin" label="比特币" /> 
+        <option value="nebulas-token" label="星云币"/> 
+        <option value="ethereum" label="以太币"/> 
+        <option value="ripple" label="瑞波币"/> 
+        <option value="bitcoin-cash" label="比特币现金"/> 
+        <option value="eos" label="柚子币"/> 
+        <option value="litecoin" label="莱特币"/> 
+        <option value="stellar" label="恒星币"/> 
+        <option value="cardano" label="艾达币"/> 
+        <option value="tron" label="波场币"/> 
+        <option value="iota" label="埃欧塔" /> 
+        <option value="neo" label="小蚁币"/> 
+        <option value="dash" label="达世币"/> 
+        <option value="monero" label="门罗币"/> 
+        <option value="tether" label="泰达币"/> 
+        <option value="nem" label="新经币"/> 
+        <option value="vechain" label="唯链"/> 
+        <option value="ethereum-classic" label="以太经典"/> 
+        <option value="binance-coin" label="币安币"/> 
+        <option value="bytecoin-bcn" label="字节币"/> 
+        <option value="qtum" label="量子币"/> 
+<!--        <option value="zcash" label="零币"/> 
+        <option value="omisego" label="嫩模币"/> 
+        <option value="icon" label="图标币"/> 
+        <option value="lisk" label="应用链"/> 
+		 <option value="zilliqa" label=""/> 
+        <option value="ontology" label="本体币"/> 
+        <option value="bitcoin-gold" label="比特黄金"/> 
+        <option value="aeternity" label=""/> 
+        <option value="decred" label="德信币"/> 
+        <option value="steem" label="斯蒂姆币"/> 
+-->
+</datalist>
+<datalist id="coin3"> 
+        <option value="Bitcoin" label="比特币" /> 
+        <option value="Nebulas" label="星云币"/> 
+        <option value="Ethereum" label="以太币"/> 
+        <option value="Ripple" label="瑞波币"/> 
+        <option value="Bitcoin Cash" label="比特币现金"/> 
+        <option value="EOS" label="柚子币"/> 
+        <option value="Litecoin" label="莱特币"/> 
+        <option value="Stellar" label="恒星币"/> 
+        <option value="Cardano" label="艾达币"/> 
+        <option value="TRON" label="波场币"/> 
+        <option value="IOTA" label="埃欧塔" /> 
+        <option value="NEO" label="小蚁币"/> 
+        <option value="Dash" label="达世币"/> 
+        <option value="Monero" label="门罗币"/> 
+        <option value="Tether" label="泰达币"/> 
+        <option value="NEM" label="新经币"/> 
+        <option value="VeChain" label="唯链"/> 
+        <option value="Ethereum Classic" label="以太经典"/> 
+        <option value="Binance Coin" label="币安币"/> 
+        <option value="Bytecoin" label="字节币"/> 
+        <option value="Qtum" label="量子币"/> 
+</datalist>
+
+<!--<input type=​"text" autocomplete=​"off" name=​"query" placeholder=​"Search" class=​"autocomplete-input" style=​"width:​ 300px;​ height:​ 30px;​ border-top-left-radius:​ 3px;​ border-top-right-radius:​ 0px;​ border-bottom-right-radius:​ 0px;​ border-bottom-left-radius:​ 3px;​">​
+-->
+<!--<button onclick="noinput()">清空</button>
+<input type="button" value="加入行情表格" onclick="refreshFrame()"><br/>
+-->
+
+<table border="1" align="center" id="datatbl">
+  <tr align="center" bgcolor="#cccccc">
+    <th>名称</th>
+    <th>价格(美元)</th>
+    <th>市值</th>
+    <th>成交量(24H)</th>
+
+    <th>涨跌(24H)</th>
+    <th>涨跌(7日)</th>
+    <th>更新时间</th>
+    <th>数据来源</th>
+    <th>操作</th>
+  </tr>
+  <tr align="center" height="25">
+    <td id="crypto"> </td>
+    <td id="price"> </td>
+    <td id="market_cap"> </td>
+    <td id="24h_volume"> </td>
+
+    <td id="change_24h"> </td>
+    <td id="change_7d"> </td>
+    <td id="time"> </td>
+    <td id="source"> </td>
+    <td > <input type="button" value="数据存入星云" onclick="savechain()"> </td>
+  </tr>
+</table>
+
+<input type="text" placeholder="输入加密货币全称" id="search" list="coin2" value="nebulas-token">
+<button onclick="noinput()">清空</button>
+<input type="button" value="查询" onclick="getdata()"><br/>
+<input type="text" placeholder="输入加密货币全称" id="search2" list="coin3" value="">
+<input type="date" id="idate" />
+<input type="button" value="查询链上数据" onclick="getchain()"><br/>
+
+<!--<iframe src="https://cn.investing.com/crypto/nebulas-token" vspace="0" width="100%" height="100%" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0"></iframe>
+-->
+
+</body>
+</html>
