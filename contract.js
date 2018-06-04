@@ -43,7 +43,7 @@ Coin.prototype ={
         var from = Blockchain.transaction.from;
         var coinItem = this.data.get(title);
         if(coinItem){
-            throw new Error("letter has been occupied");
+            throw new Error("data has been occupied");
         }
 
         coinItem = new CoinItem();
